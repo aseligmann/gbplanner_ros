@@ -566,6 +566,8 @@ bool PlanningParams::loadParams(std::string ns) {
     type = PlanningModeType::kBasicExploration;
   else if (!parse_str.compare("kNarrowEnvExploration"))
     type = PlanningModeType::kNarrowEnvExploration;
+  else if (!parse_str.compare("kVerticalExploration"))
+    type = PlanningModeType::kVerticalExploration;
   else {
     type = PlanningModeType::kBasicExploration;
     ROSPARAM_WARN(ns + "/type", "kBasicExploration");
