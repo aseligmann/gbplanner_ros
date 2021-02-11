@@ -23,7 +23,6 @@ pointcloud_queue_size: 1000
 min_time_between_msgs_sec: 0.0
 #max_block_distance_from_body: FLT_MAX
 publish_tsdf_info: False
-publish_slices: False
 publish_traversable: False
 traversability_radius: 1.5
 enable_icp: False

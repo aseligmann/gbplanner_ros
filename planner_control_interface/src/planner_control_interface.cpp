@@ -4,6 +4,37 @@
 #include <chrono>
 #include <thread>
 
+
+
+// EVALUATING USING MAV_ACTIVE_3D_PLANNER EVALUATION FRAMEWORK //////////////////////////////
+#include <std_srvs/SetBool.h>
+bool eval_planning_ = false;
+bool eval_runSrvCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res) {
+    res.success = true;
+    ROS_INFO_STREAM("EVAL: Got request for TOGGLE RUNNING.");
+    if (req.data) {
+        eval_planning_ = true;
+        ROS_INFO("EVAL: Started planning.");
+    } else {
+        eval_planning_ = false;
+        ROS_INFO("EVAL: Stopped planning.");
+    }
+    return true;
+}
+clock_t eval_cpu_srv_timer_ = std::clock();
+bool eval_cpuSrvCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res) {
+    ROS_INFO_STREAM("EVAL: Got request for CPU service.");
+    double time = (double) (std::clock() - eval_cpu_srv_timer_) / CLOCKS_PER_SEC;
+    eval_cpu_srv_timer_ = std::clock();
+
+    // Just return cpu time as the service message
+    res.message = std::to_string(time).c_str();
+    res.success = true;
+    return true;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
 namespace explorer {
 
 PlannerControlInterface::PlannerControlInterface(
@@ -341,7 +372,25 @@ bool PlannerControlInterface::init() {
 void PlannerControlInterface::run() {
   ros::Rate rr(10);  // 10Hz
   bool cont = true;
-  while (cont) {
+
+
+
+  // EVALUATING USING MAV_ACTIVE_3D_PLANNER EVALUATION FRAMEWORK //////////////////////////////
+  ros::ServiceServer eval_run_srv_ = nh_.advertiseService("/planner_evaluation/toggle_running", eval_runSrvCallback);
+  ros::ServiceServer eval_get_cpu_time_srv_ = nh_.advertiseService("/planner_evaluation/get_cpu_time", eval_cpuSrvCallback);
+  ros::Rate eval_r(1);
+  while (!eval_planning_) {
+    ROS_INFO("EVAL: Waiting for service request on %s to start planning...", eval_run_srv_.getService().c_str());
+    ros::spinOnce();
+    eval_r.sleep();
+  }
+  eval_cpu_srv_timer_ = std::clock();
+  ROS_INFO("Continuing...");
+  /////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+  while (cont && eval_planning_) {
     PCIManager::PCIStatus pci_status = pci_manager_->getStatus();
     if (pci_status == PCIManager::PCIStatus::kReady) {
       // Priority 1: Check if require homing.
